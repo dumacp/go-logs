@@ -126,13 +126,13 @@ func main() {
 			prefix = res[1]
 		}
 
-		log.Println("01")
+		fmt.Println("regex ok")
 
 		directory, err := os.ReadDir(dirData)
 		if err != nil {
 			log.Fatalln(err)
 		}
-		log.Println("01")
+		fmt.Println("read dir ok")
 		for _, v := range directory {
 			fi, err := v.Info()
 			if err != nil {
@@ -143,23 +143,23 @@ func main() {
 				continue
 			}
 
-			log.Printf("name : %s", fi.Name())
+			fmt.Printf("parse filename: %s\n", fi.Name())
 			res := refilename.FindStringSubmatch(fi.Name())
-			log.Printf("res : %+v", res)
+			fmt.Printf("submatch filename : %+v\n", res)
 			if len(res) < 3 || len(res[1]) <= 0 {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			// log.Println("02")
+			fmt.Println("regex ok")
 
 			index, err := strconv.Atoi(res[2])
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			// log.Println("03")
+			log.Println("03")
 
-			log.Printf("prefix : %s, %s", prefix, fi.Name())
+			fmt.Printf("prefix : %s, %s\n", prefix, fi.Name())
 			if !strings.HasPrefix(fi.Name(), prefix) {
 				continue
 			}
@@ -183,22 +183,29 @@ func main() {
 			return
 		}
 
-		printable, err := regexp.Compile(`[\t\n\v\f\r [:graph:]]+$`)
+		// printable, err := regexp.Compile(`[\t\n\v\f\r [:graph:]]+$`)
 		// printable, err := regexp.Compile(`[\t\n\v\r A-Za-z0-9!"#$%&()*+,\-./:;<=>?[\\\]^_{|}~]+$`)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		stats, _ := datafiles.Content.Stat()
+		fmt.Printf("bytes in contents file: %s\n", stats)
 		scan := bufio.NewScanner(datafiles.Content)
+
+		bufferSize := 256 * 1024
+		scannerBuffer := make([]byte, bufferSize)
+		scan.Buffer(scannerBuffer, bufferSize)
+		scan.Split(bufio.ScanLines)
 		for scan.Scan() {
 			text := scan.Text()
-			if printable.MatchString(text) {
-				itemp := make(map[string]interface{})
-				if err := json.Unmarshal([]byte(text), &itemp); err != nil {
-					continue
-				}
-				data.Items = append(data.Items, text)
+			// if printable.MatchString(text) {
+			itemp := make(map[string]interface{})
+			if err := json.Unmarshal([]byte(text), &itemp); err != nil {
+				continue
 			}
+			data.Items = append(data.Items, text)
+			// }
 		}
 		// } else {
 		// 	scan := bufio.NewScanner(datafiles.Contents[0])
@@ -206,7 +213,7 @@ func main() {
 		// 		data.Items = append(data.Items, scan.Text())
 		// 	}
 		// }
-		log.Printf("Items %+v", data.Items)
+		fmt.Printf("Items count in log: %d\n", len(data.Items))
 
 		tmpfiles, err := os.ReadDir(tmpdir)
 		if err != nil {

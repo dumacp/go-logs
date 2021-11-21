@@ -8,7 +8,7 @@ func TestRotateWriter_Rotate(t *testing.T) {
 
 	conf := &Conf{
 		Directory: "/tmp/",
-		Prefix:    "log",
+		Prefix:    "trans-log",
 		Size:      10,
 		Count:     5,
 	}

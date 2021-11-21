@@ -2,6 +2,7 @@ package rotate
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,13 +19,13 @@ type Conf struct {
 	Count     int
 }
 
-type funcWriter func(output []byte) []byte
+// type funcWriter func(output []byte) []byte
 
 type RotateWriter struct {
-	Conf      *Conf
-	lock      sync.Mutex
-	fp        *os.File
-	funcWrite funcWriter
+	Conf *Conf
+	lock sync.Mutex
+	fp   *os.File
+	// funcWrite funcWriter
 }
 
 // Make a new RotateWriter. Return nil if error occurs during setup.
@@ -59,7 +60,7 @@ func New(conf *Conf) (*RotateWriter, error) {
 }
 
 // Make a new RotateWriter. Return nil if error occurs during setup.
-func NewWithFuncWriter(funcWriter funcWriter, conf *Conf) (*RotateWriter, error) {
+func NewWithFuncWriter(funcWriter func(output []byte) []byte, conf *Conf) (*RotateWriter, error) {
 
 	if fd, err := os.Open(conf.Directory); err != nil {
 		if err := os.Mkdir(conf.Directory, 0755); err != nil {
@@ -83,40 +84,36 @@ func NewWithFuncWriter(funcWriter funcWriter, conf *Conf) (*RotateWriter, error)
 		return nil, err
 	}
 	w := &RotateWriter{
-		Conf:      conf,
-		lock:      sync.Mutex{},
-		fp:        fp,
-		funcWrite: funcWriter,
+		Conf: conf,
+		lock: sync.Mutex{},
+		fp:   fp,
+		// funcWrite: funcWriter,
 	}
 	return w, nil
 }
 
-func NewLogger(dir, prefixname string, size int64, count int, logFlag int) (*log.Logger, error) {
-	conf := &Conf{
-		Directory: dir,
-		Prefix:    prefixname,
-		Size:      size,
-		Count:     count,
-	}
-	s, err := New(conf)
-	if err != nil {
-		return nil, err
-	}
-	return log.New(s, "", logFlag), nil
+func (w *RotateWriter) NewLogger(prefix string, logFlag int) *log.Logger {
+	return log.New(w, prefix, logFlag)
 }
 
-func NewLoggerWithFuncWriter(funcWriter funcWriter, dir, prefixname string, size int64, count int, logFlag int) (*log.Logger, error) {
-	conf := &Conf{
-		Directory: dir,
-		Prefix:    prefixname,
-		Size:      size,
-		Count:     count,
+type bypass struct {
+	out        io.Writer
+	funcOutput func(output []byte) []byte
+}
+
+func (b *bypass) Write(data []byte) (int, error) {
+	result := b.funcOutput(data)
+	return b.out.Write(result)
+}
+
+func (w *RotateWriter) NewLoggerWithFuncOutput(logFlag int,
+	funcOut func(output []byte) []byte) *log.Logger {
+
+	byp := &bypass{
+		out:        w,
+		funcOutput: funcOut,
 	}
-	s, err := NewWithFuncWriter(funcWriter, conf)
-	if err != nil {
-		return nil, err
-	}
-	return log.New(s, "", logFlag), nil
+	return log.New(byp, "", logFlag)
 }
 
 // Close close file.
@@ -139,10 +136,10 @@ func (w *RotateWriter) Write(output []byte) (int, error) {
 			return 0, err
 		}
 	}
-	// log.Printf("escribiendo: %s", output)
-	if w.funcWrite != nil {
-		output = w.funcWrite(output)
-	}
+	// // log.Printf("escribiendo: %s", output)
+	// if w.funcWrite != nil {
+	// 	output = w.funcWrite(output)
+	// }
 	return w.fp.Write(output)
 }
 

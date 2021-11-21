@@ -5,8 +5,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-
-	"github.com/dumacp/go-logs/internal/rotate"
 )
 
 // var PrintFuncWarning func(format string, v ...interface{})
@@ -52,15 +50,4 @@ func (logg *Logger) SetLogError(logger *log.Logger) {
 //Disable set logs with ERROR level
 func (logg *Logger) Disable() {
 	logg.Logger.SetOutput(ioutil.Discard)
-}
-
-func NewRotate(dir, prefixname string, size int64, count, logFlat int) (*log.Logger, error) {
-
-	return rotate.NewLogger(dir, prefixname, size, count, logFlat)
-
-}
-
-func NewRotateWithFuncWriter(funcWrite func([]byte) []byte, dir, prefixname string, size int64, count, logFlat int) (*log.Logger, error) {
-	return rotate.NewLoggerWithFuncWriter(funcWrite, dir, prefixname, size, count, logFlat)
-
 }
