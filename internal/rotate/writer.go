@@ -164,15 +164,21 @@ func (w *RotateWriter) Rotate() error {
 		if f.IsDir() {
 			continue
 		}
-		re, err := regexp.Compile(fmt.Sprintf("%s_([0-%d]).log", w.Conf.Prefix, w.Conf.Count))
+		re, err := regexp.Compile(fmt.Sprintf("(.*%s)_([0-%d]).log", w.Conf.Prefix, w.Conf.Count))
 		if err != nil {
 			return err
 		}
 		res := re.FindStringSubmatch(f.Name())
-		if len(res) < 2 || len(res[1]) <= 0 {
+
+		if len(res) < 3 || len(res[2]) <= 0 {
 			continue
 		}
-		key, _ := strconv.Atoi(res[1])
+		fmt.Printf("res 0: %v\n", res)
+		if len(res[1]) > len(w.Conf.Prefix) {
+			continue
+		}
+		fmt.Printf("res 1: %v\n", res)
+		key, _ := strconv.Atoi(res[2])
 		filenames[key] = f.Name()
 	}
 	keys := make([]int, 0)
@@ -181,7 +187,7 @@ func (w *RotateWriter) Rotate() error {
 	}
 
 	sort.Sort(sort.Reverse(sort.IntSlice(keys)))
-	log.Printf("keys: %v", keys)
+	fmt.Printf("keys: %v\n", keys)
 	for len(keys) > 0 && keys[0] >= w.Conf.Count {
 		keys = keys[1:]
 	}
