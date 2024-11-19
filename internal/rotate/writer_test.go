@@ -10,7 +10,7 @@ func TestRotateWriter_Rotate(t *testing.T) {
 		Directory: "/tmp/",
 		Prefix:    "trans-log",
 		Size:      10,
-		Count:     5,
+		Count:     9,
 	}
 
 	w, err := New(conf)
@@ -49,7 +49,7 @@ func TestRotateWriter_Write(t *testing.T) {
 		Directory: "/tmp/",
 		Prefix:    "log",
 		Size:      32,
-		Count:     5,
+		Count:     9,
 	}
 
 	w, err := New(conf)
